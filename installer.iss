@@ -25,6 +25,6 @@ Source: "F:\GRU\ABROLHOS_ INGRESSOS\dist\assets\*"; DestDir: "{app}\assets"; Fla
 
 [Icons]
 ; Atalho do Menu Iniciar
-Name: "{group}\Ingressos Abrolhos"; Filename: "AbrolhosIngressos.exe"; IconFilename: "{app}\icon.ico"
+Name: "{group}\Ingressos Abrolhos"; Filename: "{app}\AbrolhosIngressos.exe"; WorkingDir: "{app}"; IconFilename: "{app}\assets\icon.ico"
 ; Atalho no Desktop
-Name: "{userdesktop}\Ingressos Abrolhos"; Filename: "AbrolhosIngressos.exe"; IconFilename: "{app}\icon.ico"
+Name: "{userdesktop}\Ingressos Abrolhos"; Filename: "{app}\AbrolhosIngressos.exe"; WorkingDir: "{app}"; IconFilename: "{app}\assets\icon.ico"
