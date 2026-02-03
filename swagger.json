@@ -1,0 +1,718 @@
+{
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "https://<dominio_do_psp>/api/pagtesouro/v1",
+      "description": "Servidor de Produção"
+    },
+    {
+      "url": "https://<dominio_sandbox_do_psp>/api/pagtesouro/v1",
+      "description": "Servidor de Teste (Sandbox)"
+    }
+  ],
+  "info": {
+    "description": "<img src=\"img/logo-pagtes.png\" style=\"display: block; margin: 0 auto; margin-top: 20px;\">\n\n# Histórico de Versões\n<table style=\"width:100%\">\n  <tr>\n    <th>Data</th>\n    <th>Versão</th>\n    <th>Descrição</th>\n  </tr>\n  <tr>\n    <td>18/05/2020</td>\n    <td>1.0</td>\n    <td>Versão para a Release 2 do PagTesouro.</td>\n  </tr>\n  <tr>\n    <td>10/08/2020</td>\n    <td>1.1</td>\n    <td>Mudança nos Tipos de Pagamento aceitos para o credenciamento.</td>\n  </tr>\n  <tr>\n    <td>05/02/2021</td>\n    <td>1.2</td>\n    <td>Informações complementares na seção 4, novas observações no \"valorTarifa\" enviado na solicitação de pagamento (API), além da remoção da \"bandeira\" (não mais enviada pelo PagTesouro).</td>\n  </tr>\n  <tr>\n    <td>22/02/2021</td>\n    <td>1.3</td>\n    <td>Inclusão do campo \"valorServiço\" no serviço Consulta de Pagamento. Inclusão do campo \"informacoesAdicionais\" no serviço Solicitação de Pagamento.</td>\n  </tr>\n  <tr>\n    <td>04/03/2021</td>\n    <td>1.4</td>\n    <td>Alteração do formato dos campos de datas nos serviços da API. Melhorias no texto da seção 6 e de alguns campos dos serviços da API. Alteração das URLs do serviço de Notificação do Pagamento.</td>\n  </tr>\n  <tr>\n    <td>15/03/2021</td>\n    <td>1.5</td>\n    <td>Atualização das URLs de Produção e de Testes do serviço de Notificação do Pagamento.</td>\n  </tr>\n  <tr>\n    <td>09/06/2021</td>\n    <td>1.6</td>\n    <td>Nova observação referente ao parâmetro \"dataVencimento\" na solicitação de pagamento.</td>\n  </tr>\n  <tr>\n    <td>09/02/2022</td>\n    <td>1.7</td>\n    <td>Alteração na seção 4 para contemplar as formas de armazenamento do CNPJ do PSP, conforme o Certificado ICP-Brasil seja de equipamento ou de aplicação.</td>\n  </tr>\n  <tr>\n    <td>24/03/2025</td>\n    <td>2.0</td>\n    <td>Alterada a seção 5 com o novo tipo de pagamento \"Saldo em Carteira Digital\" (SALDO_CARTEIRA). Alterada a descrição do atributo referente ao tipo de pagamento nos serviços de Solicitação e Consulta de pagamento. Incluído link para o serviço de atendimento PagTesouro na seção 1.</td>\n  </tr>\n</table>\n\n# 1. Introdução\n<p align=\"justify\">Este documento tem por objetivo definir as especificações e os critérios técnicos necessários para\n adesão dos Prestadores de Serviços de Pagamento (PSPs) ao Modelo de Credenciamento do sistema PagTesouro que foi \n instituído pela Secretaria do Tesouro Nacional (STN), tendo como principal objetivo o pagamento das Guias de \n Recolhimento da União (GRUs) pelos contribuintes de forma digital como, por exemplo, via cartão de crédito.</p>\n \n <p align=\"justify\">O conteúdo deste manual destina-se a programadores e desenvolvedores de plataformas de comércio eletrônico que \n desejam integrar-se ao PagTesouro para recebimento de pagamentos de GRUs, a partir do desenvolvimento e \n disponibilização de serviços web conforme documentados na seção \"API\".</p>\n\n <p align=\"justify\">Para dúvidas técnicas ou feedback utilize nosso <a href=\"https://e-servicos.tesouro.gov.br/#/Servico/1381295\" target=\"_blank\">\n serviço de atendimento PagTesouro</a>.</p>\n\n# 2. Premissas\n<p align=\"justify\">Para a perfeita integração do PSP com o PagTesouro, as seguintes premissas deverão ser atendidas:</p>\n<ul>\n  <li>Os serviços descritos na seção \"API/PagTesouro\" deverão ser implementados pelo PSP e consumidos pelo PagTesouro \n  de forma padronizada, enquanto o serviço para recebimento das notificações de pagamentos finalizados, descrito na \n  seção \"API/PSP\", será construído pelo PagTesouro e acionado pelo PSP.</li>\n  <p></p>\n  <li>A integração do PagTesouro com o PSP ocorrerá através de redirecionamento para o ambiente seguro do PSP (checkout padrão).</li>\n  <p></p>\n  <li>O PagTesouro não irá tratar a situação de estorno de pagamento. Assim, mesmo que um pagamento concluído seja estornado no PSP, o PagTesouro continuará assumindo a situação de concluído.</li>\n  <p></p>\n  <li>O PSP deverá prover um ambiente para testes de integração com o PagTesouro de forma isolada (por exemplo, a utilização de outra URL ou a mesma URL com outras\n  credenciais), de modo a garantir que a realização dos testes possa ocorrer normalmente mesmo após a entrada em produção.</li>\n  <p></p>\n  <li>O PagTesouro disponibilizará uma Sandbox para que o PSP possa simular a execução do fluxo do pagamento de forma a \n  testar a integração dos serviços implementados.</li>\n</ul>\n\n# 3. Comunicação\n<p align=\"justify\">Os dados serão enviados e recebidos via serviços Web e será adotado o estilo arquitetural REST\n(Representational State Transfer) na construção dos serviços Web. A tabela abaixo lista os padrões de comunicação\ndefinidos para a integração do PSP com o PagTesouro:</p>\n<table style=\"width:100%\">\n  <tr>\n    <th>Componente</th>\n    <th>Especificação</th>\n    <th>Observação</th>\n  </tr>\n  <tr>\n    <td>Tipo de Comunicação</td>\n    <td>Síncrona</td>\n    <td></td>\n  </tr>\n  <tr>\n    <td>Protocolo</td>\n    <td>HTTP v1.1</td>\n    <td>RFC 2616</td>\n  </tr>\n  <tr>\n    <td>Formato dos dados</td>\n    <td>JSON</td>\n    <td>RFC 7159</td>\n  </tr>\n</table>\n\n# 4. Segurança\n<p align=\"justify\">Para os serviços disponíveis, a comunicação deverá contemplar os seguintes itens de segurança:</p>\n<ul>\n<li>Uso de conexão criptografada via HTTPS (HyperText Transfer Protocol Secure).</li>\n<p></p> \n<li>Utilização do protocolo TLS 1.2 pelo HTTPS para garantir a autenticidade e a criptografia dos dados das mensagens trafegadas. Não serão suportadas versões anteriores do TLS.</li>\n<p></p>\n<li>Restrição de uso somente aos IPs dos PSPs credenciados (whitelist) para o consumo do serviço de Notificação do Pagamento. O PSP deverá encaminhar a sua lista de IPs à STN.</li>\n<p></p> \n<li>Utilização de certificado digital do tipo A1 para autenticação mútua, a fim de garantir a Confidencialidade, Integridade e Autenticidade dos dados trafegados.</li>\n<p></p>\n<li>O certificado deve ser emitido por Autoridade Certificadora credenciada pela Infraestrutura de Chaves Públicas Brasileira – ICP-Brasil, devendo conter o CNPJ da pessoa jurídica titular do Certificado digital, que poderá estar armazenado de acordo com seu tipo:<br><ul><li><b>certificado de equipamento:</b> na entrada Serial Number na estrutura Distinguished Name (DN);</li><li><b>certificado de aplicação:</b> no campo otherName OID=2.16.76.1.3.3 da estrutura Subject Alternative Name (SAN).</li></ul><br>O certificado deve ter a extensão Extended Key Usage com permissão de \"Autenticação Cliente\" e a chave do certificado deverá ser no mínimo de 2048 bits.</li>\n<!--\n<p></p>\n<li>Ao gerar o arquivo CSR (Certificate Signing Request) para assinatura da Autoridade Certificadora (AC), o PSP provavelmente não precisará informar o campo otherName mencionado no item anterior, já que este parece ser um procedimento padrão da AC no momento da assinatura. Todavia, não custa reforçar esse ponto com a AC, por garantia.</li>\n-->\n<p></p>\n<li>A responsabilidade pela aquisição de certificados, tanto para utilização no ambiente de Testes do PagTesouro quanto no ambiente de Produção, é do PSP. A recomendação é que cada PSP tenha certificados diferentes para os referidos ambientes.</li>\n<p></p>\n<li>Ao receber uma notificação de pagamento, o PagTesouro validará o CNPJ do PSP presente no certificado recebido. Da mesma forma, ao receber uma solicitação ou consulta de pagamento, o PSP deverá validar o CNPJ do Serpro (33683111000107) contido no certificado enviado na requisição.</li>\n<p></p>\n<li>Embora em cada requisição de serviço recebida pelo PagTesouro (notificação de pagamento) ou pelo PSP (solicitação e consulta de pagamento) haja a validação do CNPJ do certificado cliente, não é necessário que as URLs expostas desses serviços façam uso de certificados ICP-Brasil, desde que a cadeia de certificados seja amplamente reconhecida. O domínio do PagTesouro ou do PSP poderiam usar, por exemplo, um certificado Let's Encrypt, GlobalSign etc.</li>\n</ul>\n\n# 5. Tipos de Pagamento\n<p align=\"justify\">Os tipos de pagamento que estarão disponíveis no PagTesouro, para os quais o PSP poderá \nse integrar, são os seguintes:</p>\n<ul>\n<li>Cartão de Crédito</li>\n<li>Saldo em Carteira Digital</li>\n</ul>\n<p align=\"justify\">No acionamento do serviço de Solicitação de Pagamento, o PagTesouro enviará para o PSP o tipo \npermitido para aquele pagamento de GRU e, dessa forma, este deverá disponibilizar para o contribuinte \napenas esta opção em seu ambiente de pagamento.</p>\n<p align=\"justify\">O domínio de valores possíveis para os tipos de pagamento permitidos no serviço de \nSolicitação de Pagamento será o seguinte:</p>\n<ul>\n<li>\"<b>CARTAO_CREDITO</b>\"</li>\n<li>\"<b>SALDO_CARTEIRA</b>\"</li>\n</ul>\n\n# 6. Situações do Pagamento\n<p align=\"justify\">Para o PagTesouro um pagamento possuirá apenas três situações possíveis após realizada a solicitação \nao PSP, são estas:</p>\n<ul>\n<li>\"<b>PENDENTE</b>\": indica que o pagamento foi submetido e iniciado no PSP mas ainda está pendente de conclusão.</li>\n<li>\"<b>CONCLUIDO</b>\": indica que o pagamento no PSP foi concluído com sucesso.</li>\n<li>\"<b>REJEITADO</b>\": indica que o pagamento no PSP <u>não</u> foi concluído com sucesso, ou seja, ou foi cancelado ou rejeitado.</li>\n</ul>\n\n<p align=\"justify\">As situações CONCLUIDO e REJEITADO para o PagTesouro são estados finalísticos, ou seja, não poderão mais ser alterados \napós o pagamento assumir essa situação.</p>\n\n<p align=\"justify\">O serviço de Consulta de Pagamento a ser implementado pelo PSP deverá retornar ao PagTesouro a situação atual do pagamento conforme seu domínio próprio.</p>\n<p align=\"justify\">Internamente o PagTesouro fará o mapeamento da situação retornada pelo PSP, conforme configuração prévia, para uma das três situações previstas no PagTesouro.</p>\n<p align=\"justify\">O PSP deverá notificar o PagTesouro, através do serviço Notificação do Pagamento, quando o pagamento for finalizado no PSP ou quando sua situação sofrer alteração.</p>\n<p align=\"justify\">O PSP terá um prazo de até <b>24 horas</b> para que a situação do pagamento assuma um estado finalístico, em que este não possa mais ser alterado. Assim, após esse prazo, caso o pagamento não esteja finalizado, o PSP deverá cancelá-lo e notificar o PagTesouro.</p>\n\n# 7. Fluxo de Integração\n<img src=\"img/fluxo-api-psp.png\">\n",
+    "version": "Versão 2.0",
+    "title": "Modelo de Credenciamento ao PagTesouro",
+    "x-logo": {
+      "url": "img/logo-serpro-mf.png",
+      "altText": "Logo do PagTesouro",
+      "href": "https://www.serpro.gov.br/"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "x-tagGroups": [
+    {
+      "name": "API",
+      "tags": [
+        "PagTesouro",
+        "PSP"
+      ]
+    }
+  ],
+  "paths": {
+    "/pagamentos": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/acceptParam"
+        },
+        {
+          "$ref": "#/components/parameters/contentTypeParam"
+        }
+      ],
+      "post": {
+        "tags": [
+          "PagTesouro"
+        ],
+        "summary": "Solicitação de Pagamento",
+        "description": "Serviço para solicitar um pagamento.",
+        "operationId": "solicitacaoPagamento",
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagamentoSolicitacaoResposta"
+                }
+              }
+            },
+            "headers": {
+              "Content-Type": {
+                "description": "Tipo do conteúdo.",
+                "schema": {
+                  "type": "string",
+                  "default": "application/json;charset=UTF-8"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/PagamentoSolicitacao"
+        }
+      }
+    },
+    "/pagamentos/{idReferencia}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/acceptParam"
+        }
+      ],
+      "get": {
+        "tags": [
+          "PagTesouro"
+        ],
+        "summary": "Consulta de Pagamento",
+        "description": "Serviço para consultar a situação de um pagamento, além de outras informações.",
+        "operationId": "getPagamentoById",
+        "parameters": [
+          {
+            "name": "idReferencia",
+            "in": "path",
+            "description": "Identificador de referência do pagamento no PagTesouro.",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 36
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagamentoConsulta"
+                }
+              }
+            },
+            "headers": {
+              "Content-Type": {
+                "description": "Tipo do conteúdo.",
+                "schema": {
+                  "type": "string",
+                  "default": "application/json;charset=UTF-8"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        }
+      }
+    },
+    "/notificacoes": {
+      "servers": [
+        {
+          "url": "https://autenticacao-pagtesouro-epag.estaleiro.serpro.gov.br/api/psp-credenciados",
+          "description": "Servidor de Produção"
+        },
+        {
+          "url": "https://v-autentica.epag.estaleiro.serpro.gov.br/api/psp-credenciados",
+          "description": "Servidor de Teste (Sandbox)"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "Content-Type",
+          "in": "header",
+          "description": "Tipo do conteúdo.",
+          "schema": {
+            "type": "string",
+            "default": "application/json;charset=UTF-8"
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "PSP"
+        ],
+        "summary": "Notificação do Pagamento",
+        "description": "Serviço para notificar ao PagTesouro a finalização de um pagamento ou uma mudança de sua situação.",
+        "operationId": "notificacao",
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/NotificacaoPagamento"
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "pagtesouroIdParam": {
+        "name": "x-pagtesouro-id",
+        "in": "header",
+        "maxLength": 512,
+        "description": "Identificador do PagTesouro definido a critério do PSP.",
+        "example": "00000000-0000-0000-0000-000000000000",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "pspIdParam": {
+        "name": "x-psp-id",
+        "in": "header",
+        "maxLength": 512,
+        "description": "Identificador do PSP definido pelo PagTesouro.",
+        "example": "00000000-0000-0000-0000-000000000000",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "acceptParam": {
+        "name": "Accept",
+        "in": "header",
+        "description": "Tipo do conteúdo aceito.",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "default": "application/json;charset=UTF-8"
+        }
+      },
+      "contentTypeParam": {
+        "name": "Content-Type",
+        "in": "header",
+        "description": "Tipo do conteúdo enviado.",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "default": "application/json;charset=UTF-8"
+        }
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Solicitação inválida (por exemplo, sintaxe de requisição mal formada).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erros"
+            },
+            "example": {
+              "erros": [
+                {
+                  "codigo": "001",
+                  "descricao": "Solicitação inválida."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "description": "Tipo do conteúdo.",
+            "schema": {
+              "type": "string",
+              "default": "application/json;charset=UTF-8"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Erro de autenticação.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erros"
+            },
+            "example": {
+              "erros": [
+                {
+                  "codigo": "002",
+                  "descricao": "Falha de autenticação."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "description": "Tipo do conteúdo.",
+            "schema": {
+              "type": "string",
+              "default": "application/json;charset=UTF-8"
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Recurso não encontrado.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erros"
+            },
+            "example": {
+              "erros": [
+                {
+                  "codigo": "003",
+                  "descricao": "Pagamento não encontrado."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "description": "Tipo do conteúdo.",
+            "schema": {
+              "type": "string",
+              "default": "application/json;charset=UTF-8"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Erro de validação.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erros"
+            },
+            "example": {
+              "erros": [
+                {
+                  "codigo": "004",
+                  "descricao": "Mensagem de erro."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "description": "Tipo do conteúdo.",
+            "schema": {
+              "type": "string",
+              "default": "application/json;charset=UTF-8"
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Erro interno do servidor.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erros"
+            },
+            "example": {
+              "erros": [
+                {
+                  "descricao": "Ocorreu um erro inesperado."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "description": "Tipo do conteúdo.",
+            "schema": {
+              "type": "string",
+              "default": "application/json;charset=UTF-8"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "Serviço indisponível.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erros"
+            },
+            "example": {
+              "erros": [
+                {
+                  "descricao": "Serviço temporariamente indisponível."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": {
+            "description": "Tipo do conteúdo.",
+            "schema": {
+              "type": "string",
+              "default": "application/json;charset=UTF-8"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "PagamentoSolicitacao": {
+        "type": "object",
+        "properties": {
+          "idReferencia": {
+            "description": "Identificador de referência do pagamento no PagTesouro.",
+            "type": "string",
+            "maxLength": 36,
+            "example": "4pFwrmd6QLdktVyuvjAki9"
+          },
+          "descricao": {
+            "description": "Descrição do pagamento. Serviço do órgão público para o qual o contribuinte está efetuando o pagamento.",
+            "type": "string",
+            "maxLength": 250,
+            "example": "Taxa de emissão de passaporte"
+          },
+          "dataVencimento": {
+            "description": "Data de vencimento do pagamento (Formato <b>ISO-8601</b>). A hora enviada estará no horário de Brasília-DF. Caso a hora esteja zerada, deve ser considerada apenas a data para fins de validação do vencimento. <p><b>Observação:</b> O PSP não deverá permitir o pagamento após a data de vencimento enviada. Caso o vencimento não tenha sido informado ou seja uma data maior que a data corrente, o PSP deverá finalizar o pagamento em até <b>24h</b>.</p>",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "YYYY-MM-DD'T'hh:mm:ss'Z'",
+            "example": "2021-03-30T00:00:00Z"
+          },
+          "valorServico": {
+            "description": "Valor do serviço (valor total da GRU). Esse é o valor cobrado pelo órgão público pela prestação do serviço ao contribuinte, sem a aplicação da tarifa do PSP. Esse valor é enviado pelo órgão ao PagTesouro na solicitação do pagamento e o mesmo deverá ser repassado ao Tesouro Nacional pelo PSP.",
+            "type": "number",
+            "format": "decimal",
+            "maxLength": 13.2,
+            "example": 149.99
+          },
+          "valorTarifa": {
+            "description": "Valor da tarifa a ser cobrada pelo PSP sobre o valor do serviço. O valor da tarifa pode ser igual a 0 (zero). <p><b>Observação 1:</b> O valor do pagamento será calculado pelo PSP (valorServico + valorTarifa) e apresentado ao contribuinte.</p><p><b>Observação 2:</b> O PSP deverá validar o valorTarifa calculado pelo PagTesouro, seguindo uma regra de arredondamento semelhante a <a href=\"https://docs.oracle.com/javase/7/docs/api/java/math/RoundingMode.html\" target=\"_blank\">RoundingMode.HALF_UP</a> (Java) e com 2 casas decimais (como exemplo, um valorTarifa calculado de 2.345 seria arredondado para 2.35, mas 2.344 ficaria 2.34). Em caso de divergência, o PSP deverá retornar um erro de validação (status HTTP 422).</p><p><b>Observação 3:</b> O valor da tarifa à vista cobrado pelo PSP (geralmente um percentual) deve ser mantido atualizado na base do PagTesouro, devendo este valor ser previamente informado à STN antes de sua vigência.</p>",
+            "type": "number",
+            "format": "decimal",
+            "maxLength": 13.2,
+            "example": 7.49
+          },
+          "urlRetorno": {
+            "description": "URL de retorno para o PagTesouro após pagamento na tela do PSP.",
+            "maxLength": 255,
+            "example": "https://pagtesouro.tesouro.gov.br/api/psp-credenciados/retorno"
+          },
+          "urlNotificacao": {
+            "description": "URL do PagTesouro para que seja notificado pelo PSP sobre o resultado final do pagamento. <b>Observação:</b> Apesar desta informação ser sempre enviada, o PSP não estará obrigado a tratá-la, desde que disponibilize em seu próprio site o cadastro da URL do PagTesouro para notificação.",
+            "maxLength": 255,
+            "example": "https://autenticacao-pagtesouro-epag.estaleiro.serpro.gov.br/api/psp-credenciados/notificacoes"
+          },
+          "tipos": {
+            "description": "Tipo de pagamento que deverá ser exibido na tela do PSP. <b>Observação:</b> Atualmente, o PagTesouro enviará apenas um dos tipos de pagamento possíveis no <i>array</i>.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "items <= 20 characters",
+              "enum": [
+                "CARTAO_CREDITO",
+                "SALDO_CARTEIRA"
+              ],
+              "example": "CARTAO_CREDITO"
+            }
+          },
+          "informacoesAdicionais": {
+            "type": "array",
+            "description": "Informações adicionais.",
+            "maxLength": 500,
+            "items": {
+              "$ref": "#/components/schemas/PagamentoSolicitacao/properties/informacoesAdicionais/InfoAdicional"
+            },
+            "InfoAdicional": {
+              "type": "object",
+              "properties": {
+                "nome": {
+                  "description": "Nome do campo.",
+                  "type": "string",
+                  "maxLength": 50,
+                  "example": "Nome do Órgão"
+                },
+                "valor": {
+                  "description": "Conteúdo do campo.",
+                  "type": "string",
+                  "maxLength": 255,
+                  "example": "ANVISA"
+                }
+              },
+              "required": [
+                "nome",
+                "valor"
+              ],
+              "xml": {
+                "name": "InfoAdicional"
+              }
+            }
+          }
+        },
+        "required": [
+          "idReferencia",
+          "descricao",
+          "valorServico",
+          "valorTarifa",
+          "urlRetorno"
+        ],
+        "xml": {
+          "name": "PagamentoSolicitacao"
+        }
+      },
+      "PagamentoSolicitacaoResposta": {
+        "type": "object",
+        "properties": {
+          "urlPagamento": {
+            "description": "URL para a tela de pagamento do PSP.",
+            "type": "string",
+            "maxLength": 255,
+            "example": "https://<dominio_do_psp>/checkout?id=123456"
+          },
+          "idPagamento": {
+            "description": "Identificador do pagamento no PSP.",
+            "type": "string",
+            "maxLength": 50,
+            "example": "123456"
+          }
+        },
+        "required": [
+          "urlPagamento"
+        ]
+      },
+      "NotificacaoPagamento": {
+        "type": "object",
+        "properties": {
+          "idReferencia": {
+            "description": "Identificador de referência do pagamento no PagTesouro.",
+            "type": "string",
+            "maxLength": 36,
+            "example": "4pFwrmd6QLdktVyuvjAki9"
+          },
+          "idPagamento": {
+            "description": "Identificador do pagamento no PSP.",
+            "type": "string",
+            "maxLength": 50,
+            "example": "123456"
+          }
+        },
+        "required": [
+          "idReferencia",
+          "pagtesouroId"
+        ]
+      },
+      "Erros": {
+        "type": "object",
+        "properties": {
+          "erros": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        },
+        "required": [
+          "descricao"
+        ],
+        "xml": {
+          "name": "Erro"
+        }
+      },
+      "Erro": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "description": "Código do erro retornado.",
+            "type": "string",
+            "maxLength": 30
+          },
+          "descricao": {
+            "description": "Descrição do erro retornado.",
+            "type": "string",
+            "maxLength": 255
+          },
+          "campo": {
+            "description": "Campo referente ao erro de validação retornado.",
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "descricao"
+        ],
+        "xml": {
+          "name": "Erro"
+        }
+      },
+      "PagamentoConsulta": {
+        "type": "object",
+        "properties": {
+          "idPagamento": {
+            "description": "Identificador do pagamento no PSP. <b>Observação:</b> para pagamentos concluídos com sucesso, esta informação deverá ser retornada <b>obrigatoriamente</b>.",
+            "type": "string",
+            "maxLength": 50,
+            "example": "123456"
+          },
+          "dataCriacao": {
+            "description": "Data de criação do pagamento no PSP (Formato <b>ISO-8601</b>). Deve ser enviada no horário de Brasília-DF.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "YYYY-MM-DD'T'hh:mm:ss.sss'Z'",
+            "example": "2021-03-04T11:30:15.000Z"
+          },
+          "dataAtualizacaoSituacao": {
+            "description": "Data da última atualização da situação do pagamento (Formato <b>ISO-8601</b>). Deve ser enviada no horário de Brasília-DF.",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "YYYY-MM-DD'T'hh:mm:ss.sss'Z'",
+            "example": "2021-03-04T11:31:08.000Z"
+          },
+          "tipo": {
+            "type": "string",
+            "description": "Tipo de pagamento escolhido. <b>Observação:</b> para pagamentos concluídos com sucesso, esta informação deverá ser retornada <b>obrigatoriamente</b>.",
+            "enum": [
+              "CARTAO_CREDITO",
+              "SALDO_CARTEIRA"
+            ]
+          },
+          "situacao": {
+            "type": "string",
+            "description": "Situação do pagamento no PSP. <b>Observação:</b> o valor retornado aqui será mapeado para o domínio de situações possíveis no PagTesouro.",
+            "maxLength": 20,
+            "example": "OK"
+          },
+          "valorServico": {
+            "description": "Valor do serviço enviado na Solicitação de Pagamento. <b>Observação:</b> para pagamentos concluídos com sucesso, esta informação deverá ser retornada <b>obrigatoriamente</b>.",
+            "type": "number",
+            "format": "decimal",
+            "maxLength": 13.2,
+            "example": 149.99
+          }
+        },
+        "required": [
+          "situacao"
+        ],
+        "xml": {
+          "name": "PagamentoConsulta"
+        }
+      }
+    },
+    "requestBodies": {
+      "PagamentoSolicitacao": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "description": "Solicitação de Pagamento",
+                  "title": "Pagamento"
+                },
+                {
+                  "$ref": "#/components/schemas/PagamentoSolicitacao"
+                }
+              ]
+            }
+          }
+        },
+        "required": true
+      },
+      "NotificacaoPagamento": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "description": "Notificação do Pagamento",
+                  "title": "Notificação"
+                },
+                {
+                  "$ref": "#/components/schemas/NotificacaoPagamento"
+                }
+              ]
+            }
+          }
+        },
+        "required": true
+      }
+    }
+  }
+}
