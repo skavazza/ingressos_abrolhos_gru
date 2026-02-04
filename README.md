@@ -58,6 +58,25 @@ Isso criará:
 python main.py
 ```
 
+### Modo Servidor (Sincronização)
+
+Para operar no modelo **App Servidor / App Cliente**, execute a API de sincronização
+em uma máquina central com acesso ao banco de dados:
+
+```bash
+export ABROLHOS_DB_PATH=abrolhos_ingressos.db
+export ABROLHOS_UPLOAD_DIR=uploads
+uvicorn server.api:app --host 0.0.0.0 --port 8000
+```
+
+Endpoints principais:
+- `GET /precos/ativo`: retorna a tabela de preços vigente.
+- `POST /registros`: recebe registros de visita (clientes).
+- `POST /documentos`: recebe documentos para auditoria (nota/GRU).
+
+No app cliente, use o `utils/sync_client.py` para puxar preços, enviar registros
+e documentos para o servidor central.
+
 ### Funcionalidades em Destaque
 
 #### 1. Emissão de GRU (Segundo Plano)

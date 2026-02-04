@@ -9,7 +9,7 @@ import bcrypt
 
 from models.database import (
     Usuario, Empresa, Embarcacao, TabelaPrecoIngresso, 
-    RegistroVisita, LogAuditoria
+    RegistroVisita, LogAuditoria, DocumentoAuditoria
 )
 
 
@@ -431,6 +431,35 @@ class RegistroVisitaService:
         )
         
         return resumo
+
+
+class DocumentoAuditoriaService:
+    """Serviços para gerenciamento de documentos de auditoria"""
+
+    @staticmethod
+    def criar(session: Session, empresa_id: int, tipo: str, nome_arquivo: str,
+              caminho_arquivo: str, registro_visita_id: Optional[int] = None) -> DocumentoAuditoria:
+        """Cria um novo registro de documento enviado para auditoria"""
+        documento = DocumentoAuditoria(
+            empresa_id=empresa_id,
+            registro_visita_id=registro_visita_id,
+            tipo=tipo,
+            nome_arquivo=nome_arquivo,
+            caminho_arquivo=caminho_arquivo
+        )
+        session.add(documento)
+        session.commit()
+        return documento
+
+    @staticmethod
+    def listar_por_empresa(session: Session, empresa_id: int) -> List[DocumentoAuditoria]:
+        """Lista documentos enviados por empresa"""
+        return (
+            session.query(DocumentoAuditoria)
+            .filter_by(empresa_id=empresa_id)
+            .order_by(DocumentoAuditoria.criado_em.desc())
+            .all()
+        )
 
 
 class LogService:
