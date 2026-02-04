@@ -44,6 +44,7 @@ class Empresa(Base):
     # Relacionamentos
     embarcacoes = relationship("Embarcacao", back_populates="empresa")
     registros_visita = relationship("RegistroVisita", back_populates="empresa")
+    documentos_auditoria = relationship("DocumentoAuditoria", back_populates="empresa")
     
     def __repr__(self):
         return f"<Empresa(nome='{self.nome}', cnpj='{self.cnpj}')>"
@@ -149,6 +150,25 @@ class RegistroVisita(Base):
     
     def __repr__(self):
         return f"<RegistroVisita(data='{self.data}', empresa='{self.empresa.nome if self.empresa else 'N/A'}', total=R${self.valor_total})>"
+
+
+class DocumentoAuditoria(Base):
+    """Documentos enviados para auditoria"""
+    __tablename__ = 'documentos_auditoria'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    empresa_id = Column(Integer, ForeignKey('empresas.id'), nullable=False)
+    registro_visita_id = Column(Integer, ForeignKey('registros_visita.id'))
+    tipo = Column(String(50), nullable=False)  # nota, gru, relatorio, etc.
+    nome_arquivo = Column(String(255), nullable=False)
+    caminho_arquivo = Column(String(500), nullable=False)
+    criado_em = Column(DateTime, default=datetime.now)
+
+    empresa = relationship("Empresa", back_populates="documentos_auditoria")
+    registro_visita = relationship("RegistroVisita")
+
+    def __repr__(self):
+        return f"<DocumentoAuditoria(empresa_id={self.empresa_id}, tipo='{self.tipo}', arquivo='{self.nome_arquivo}')>"
 
 
 class LogAuditoria(Base):
